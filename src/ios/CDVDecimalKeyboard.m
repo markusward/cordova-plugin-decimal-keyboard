@@ -26,8 +26,8 @@ BOOL isAppInBackground=NO;
                                              selector:@selector(appDidBecomeActive:)
                                                  name:UIApplicationDidBecomeActiveNotification
                                                object:nil];
-    
-    
+
+
 }
 - (void) appWillResignActive: (NSNotification*) n{
     isAppInBackground = YES;
@@ -38,7 +38,7 @@ BOOL isAppInBackground=NO;
     if(isAppInBackground==YES){
         isAppInBackground = NO;
         [self processKeyboardShownEvent];
-        
+
     }
 }
 
@@ -71,22 +71,22 @@ BOOL isAppInBackground=NO;
             forControlEvents:UIControlEventTouchDown];
     [decimalButton addTarget:self action:@selector(buttonPressCancel:)
             forControlEvents:UIControlEventTouchUpOutside];
-    
-    
+
+
     decimalButton.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
     [decimalButton setTitleEdgeInsets:UIEdgeInsetsMake(-20.0f, 0.0f, 0.0f, 0.0f)];
     [decimalButton setBackgroundColor: [UIColor colorWithRed:210/255.0 green:213/255.0 blue:218/255.0 alpha:1.0]];
-    
+
     // locate keyboard view
     UIWindow* tempWindow = nil;
     NSArray* openWindows = [[UIApplication sharedApplication] windows];
-    
+
     for(UIWindow* object in openWindows){
         if([[object description] hasPrefix:@"<UIRemoteKeyboardWindow"] == YES){
             tempWindow = object;
         }
     }
-    
+
     if(tempWindow ==nil){
         //for ios 8
         for(UIWindow* object in openWindows){
@@ -96,7 +96,7 @@ BOOL isAppInBackground=NO;
         }
     }
 
-    
+
     UIView* keyboard;
     for(int i=0; i<[tempWindow.subviews count]; i++) {
         keyboard = [tempWindow.subviews objectAtIndex:i];
@@ -109,7 +109,7 @@ BOOL isAppInBackground=NO;
     [decimalButton removeFromSuperview];
     decimalButton=nil;
     stopSearching=NO;
-    
+
 }
 - (void) deleteDecimalButton{
     [decimalButton removeFromSuperview];
@@ -122,18 +122,18 @@ BOOL isDifferentKeyboardShown=NO;
     NSDictionary* info = [n userInfo];
     NSNumber* value = [info objectForKey:UIKeyboardAnimationDurationUserInfoKey];
     double dValue = [value doubleValue];
-    
+
     if(dValue <= 0.0){
         [self removeDecimalButton];
         return;
     }
-    
+
     dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC * dValue);
     dispatch_after(delay, dispatch_get_main_queue(), ^(void){
         [self processKeyboardShownEvent];
     });
-    
-    
+
+
 }
 - (void) processKeyboardShownEvent{
     [self isTextAndDecimal:^(BOOL isDecimalKeyRequired) {
@@ -169,7 +169,7 @@ BOOL isDifferentKeyboardShown=NO;
     [self evaluateJavaScript:@"DecimalKeyboard.getActiveElementType();"
            completionHandler:^(NSString * _Nullable response, NSError * _Nullable error) {
                BOOL isText = [response isEqual:@"text"];
-               
+
                if (isText) {
                    [self evaluateJavaScript:@"DecimalKeyboard.isDecimal();"
                           completionHandler:^(NSString * _Nullable response, NSError * _Nullable error) {
@@ -185,13 +185,13 @@ BOOL isDifferentKeyboardShown=NO;
 
 BOOL stopSearching=NO;
 - (void)listSubviewsOfView:(UIView *)view {
-    
+
     // Get the subviews of the view
     NSArray *subviews = [view subviews];
-    
+
     // Return if there are no subviews
     if ([subviews count] == 0) return; // COUNT CHECK LINE
-    
+
     for (UIView *subview in subviews) {
         if(stopSearching==YES){
             break;
@@ -204,7 +204,7 @@ BOOL stopSearching=NO;
             CGFloat x = 0;
             CGFloat y =ui.frame.size.height;
             for(UIView *nView in ui.subviews){
-                
+
                 if([[nView description] hasPrefix:@"<UIKBKeyView"] == YES){
                     //all keys of same size;
                     height = nView.frame.size.height;
@@ -212,12 +212,12 @@ BOOL stopSearching=NO;
                     y = y-(height-1);
                     cgButton = CGRectMake(x, y, width, height);
                     break;
-                    
+
                 }
-                
+
             }
         }
-        
+
         [self listSubviewsOfView:subview];
     }
 }
@@ -225,13 +225,16 @@ BOOL stopSearching=NO;
 - (void) evaluateJavaScript:(NSString *)script
           completionHandler:(void (^ _Nullable)(NSString * _Nullable response, NSError * _Nullable error))completionHandler {
 
-    if ([self.webView isKindOfClass:UIWebView.class]) {
+    #if !WK_WEB_VIEW_ONLY
+		if ([self.webView isKindOfClass:UIWebView.class]) {
         UIWebView *webview = (UIWebView*)self.webView;
         NSString *response = [webview stringByEvaluatingJavaScriptFromString:script];
         if (completionHandler) completionHandler(response, nil);
     }
-    
+
     else if ([self.webView isKindOfClass:WKWebView.class]) {
+		#endif
+
         WKWebView *webview = (WKWebView*)self.webView;
         [webview evaluateJavaScript:script completionHandler:^(id result, NSError *error) {
             if (completionHandler) {
@@ -239,9 +242,11 @@ BOOL stopSearching=NO;
                 else completionHandler([NSString stringWithFormat:@"%@", result], nil);
             }
         }];
+
+		#if !WK_WEB_VIEW_ONLY
     }
-    
+		#endif
+
 }
 
 @end
-
